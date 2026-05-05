@@ -186,8 +186,13 @@ def main(cfg):
 
     accelerator = Accelerator()
     # load model once and run for many tasks
-    model = hu.instantiate(cfg.model).half()
-    if not cfg.model_parallel:  # map whole LLM to each GPU
+    if cfg.model_parallel:
+        # model_parallel=True: đã load float16 + device_map="auto" trong get_model()
+        # KHÔNG gọi .half() vì sẽ tạo bản copy tạm thời → spike VRAM
+        model = hu.instantiate(cfg.model)
+        print('model_parallel=True: model split across GPUs via device_map="auto"')
+    else:
+        model = hu.instantiate(cfg.model).half()
         model = model.to(accelerator.device)
         print('map whole LLM to each GPU')
     model = model.eval()
