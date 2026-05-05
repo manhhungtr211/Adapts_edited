@@ -80,7 +80,7 @@ class Headline(Base_Task):
         super().__init__()
         self.class_num = 2
         self.metric = "Headline"
-        self.inf_bsz = 32 # larger bsz for faster speed, reduce it if OOM
+        self.inf_bsz = 4  # reduced from 32 to avoid OOM on T4 (large activations)
 
     def get_dataset(self, cache_dir=None):
         dataset = load_dataset('AdaptLLM/finance-tasks', 'Headline', cache_dir=cache_dir)
@@ -105,7 +105,7 @@ class ConvFinQA(Base_Task):
         super().__init__()
         self.metric = "ConvFinQA"
         self.class_num = 1
-        self.inf_bsz = 16 # larger bsz for faster speed, reduce it if OOM
+        self.inf_bsz = 2  # reduced from 16 to avoid OOM on T4 (long sequences + large activations)
     
     def get_dataset(self, cache_dir=None):
         dataset = load_dataset('AdaptLLM/finance-tasks', 'ConvFinQA', cache_dir=cache_dir)

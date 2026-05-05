@@ -34,6 +34,7 @@ elif [ ${N_GPU} == '4' ]; then
         output_dir=${OUTPUT_DIR} res_dir=${RES_DIR} cache_dir=${CACHE_DIR} model_parallel=${model_parallel} \
         hydra.run.dir=/tmp
 elif [ ${N_GPU} == '2' ]; then
+    PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
     CUDA_VISIBLE_DEVICES='0,1' accelerate launch --num_processes 1 \
         inference.py task_name=${TASK} model_name=${MODEL} add_bos_token=${ADD_BOS} \
         output_dir=${OUTPUT_DIR} res_dir=${RES_DIR} cache_dir=${CACHE_DIR} model_parallel=${MODEL_PARALLEL} \

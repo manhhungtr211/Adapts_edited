@@ -9,9 +9,10 @@ def get_model(**kwargs):
     if use_parallel:
         import torch
         n_gpus = torch.cuda.device_count()
-        # Để lại ~2GB headroom mỗi GPU cho activations/KV cache
-        max_memory = {i: "14GiB" for i in range(n_gpus)}
-        max_memory["cpu"] = "30GiB"  # fallback nếu model quá lớn
+        # Giới hạn 8GiB/GPU để device_map chia đều layer,
+        # nhường ~6GB headroom cho activations + KV cache trong lúc inference
+        max_memory = {i: "8GiB" for i in range(n_gpus)}
+        max_memory["cpu"] = "30GiB"  # overflow nếu model > tổng GPU memory
 
         model = AutoModelForCausalLM.from_pretrained(
             device_map="auto",
