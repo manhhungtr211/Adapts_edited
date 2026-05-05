@@ -10,7 +10,7 @@ CACHE_DIR='/tmp/cache' # for caching hf models and datasets
 if [ ${DOMAIN} == 'biomedicine' ]; then
     TASK='MQP+PubMedQA+RCT+USMLE+ChemProt'
 elif [ ${DOMAIN} == 'finance' ]; then
-    TASK='NER+FPB+FiQA_SA+Headline+ConvFinQA'
+    TASK='ConvFinQA+NER+FPB+FiQA_SA+Headline'
 elif [ ${DOMAIN} == 'law' ]; then
     TASK='CaseHOLD+SCOTUS+UNFAIR_ToS'
 else
