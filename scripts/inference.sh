@@ -6,6 +6,8 @@ N_GPU=$5
 OUTPUT_DIR='/tmp/output/' # for saving the prediction files
 RES_DIR='/tmp/res/' # for saving the evaluation scores of each task
 CACHE_DIR='/tmp/cache' # for caching hf models and datasets
+# Thuập tất cả tham số đặc biệt từ $6 trở đi (vd: output_dir=... stop=100 ...)
+EXTRA_ARGS="${@:6}"
 
 if [ ${DOMAIN} == 'biomedicine' ]; then
     TASK='MQP+PubMedQA+RCT+USMLE+ChemProt'
@@ -22,26 +24,27 @@ echo "MODEL: ${MODEL}"
 echo "ADD_BOS: ${ADD_BOS}"
 echo "MODEL_PARALLEL: ${MODEL_PARALLEL}"
 echo "N_GPU: ${N_GPU}"
+echo "EXTRA_ARGS: ${EXTRA_ARGS}"   # ← kiểm tra stop= và các tham số phụ
 
 if [ ${N_GPU} == '8' ]; then
     CUDA_VISIBLE_DEVICES='0,1,2,3,4,5,6,7' accelerate launch  --num_processes ${N_GPU} --multi_gpu \
         inference.py task_name=${TASK} model_name=${MODEL} add_bos_token=${ADD_BOS} \
         output_dir=${OUTPUT_DIR} res_dir=${RES_DIR} cache_dir=${CACHE_DIR} model_parallel=${MODEL_PARALLEL} \
-        hydra.run.dir=/tmp
+        hydra.run.dir=/tmp ${EXTRA_ARGS}
 elif [ ${N_GPU} == '4' ]; then
     CUDA_VISIBLE_DEVICES='0,1,2,3' accelerate launch  --num_processes ${N_GPU} --multi_gpu \
         inference.py task_name=${TASK} model_name=${MODEL} add_bos_token=${ADD_BOS} \
-        output_dir=${OUTPUT_DIR} res_dir=${RES_DIR} cache_dir=${CACHE_DIR} model_parallel=${model_parallel} \
-        hydra.run.dir=/tmp
+        output_dir=${OUTPUT_DIR} res_dir=${RES_DIR} cache_dir=${CACHE_DIR} model_parallel=${MODEL_PARALLEL} \
+        hydra.run.dir=/tmp ${EXTRA_ARGS}
 elif [ ${N_GPU} == '2' ]; then
     PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
     CUDA_VISIBLE_DEVICES='0,1' accelerate launch --num_processes 1 \
         inference.py task_name=${TASK} model_name=${MODEL} add_bos_token=${ADD_BOS} \
         output_dir=${OUTPUT_DIR} res_dir=${RES_DIR} cache_dir=${CACHE_DIR} model_parallel=${MODEL_PARALLEL} \
-        hydra.run.dir=/tmp
+        hydra.run.dir=/tmp ${EXTRA_ARGS}
 elif [ ${N_GPU} == '1' ]; then
     CUDA_VISIBLE_DEVICES='0' accelerate launch  --num_processes 1 \
         inference.py task_name=${TASK} model_name=${MODEL} add_bos_token=${ADD_BOS} \
         output_dir=${OUTPUT_DIR} res_dir=${RES_DIR} cache_dir=${CACHE_DIR} model_parallel=${MODEL_PARALLEL} \
-        hydra.run.dir=/tmp
+        hydra.run.dir=/tmp ${EXTRA_ARGS}
 fi
