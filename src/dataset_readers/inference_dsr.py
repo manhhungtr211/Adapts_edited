@@ -14,7 +14,8 @@ class InferenceDatasetReader(torch.utils.data.Dataset):
         cache_dir=None,
         max_length=2048,
         generate_max_len=100,
-        add_bos_token=False
+        add_bos_token=False,
+        max_test_samples=None,  # giới hạn số mẫu test (None = chạy hết)
     ) -> None:
         self.task = task_map.cls_dic[task_name]()
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -29,6 +30,11 @@ class InferenceDatasetReader(torch.utils.data.Dataset):
             self.tokenizer.padding_side = "left"
 
         self.test_split = self.task.get_dataset(cache_dir=cache_dir)
+        # Giới hạn số mẫu test để chạy nhanh khi tạo failure table
+        if max_test_samples is not None:
+            n = min(int(max_test_samples), len(self.test_split))
+            self.test_split = self.test_split.select(range(n))
+            print(f"[failure table mode] đã giới hạn test set xuống {n} mẫu")
         self.n_tokens_in_prompt = n_tokens
         self.generate_max_len = generate_max_len
         self.num_processes = 1

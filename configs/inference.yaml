@@ -8,7 +8,6 @@ n_tokens: 2048 # max length of (prompt + task input+ task output)
 cache_dir: /tmp/cache # for caching hf models and datasets
 add_bos_token: ???
 model_parallel: ??? # True or false
-stop: ???  #số lượng batch tối đa cần xử lý (dùng cho failure table, để trống để chạy hết)
 
 dataset_reader:
   _target_: src.dataset_readers.inference_dsr.InferenceDatasetReader
@@ -18,7 +17,7 @@ dataset_reader:
   cache_dir: ${cache_dir}
   max_length: ${max_length}
   generate_max_len: ${generate_max_len}
-  stop: ${stop}
+  max_test_samples: 100  # null = chạy hết, đặt số (vd: 100) để giới hạn mẫu cho failure table
   add_bos_token: ${add_bos_token}
 model:
   _target_: src.models.model.get_model
