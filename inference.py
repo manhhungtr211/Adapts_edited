@@ -157,6 +157,41 @@ class Inferencer:
                     metadata[i]["label"] = few_shot_res["labels"][i]
                 buffer.write(metadata)
 
+    def print_failed_ids(self, data):
+        """In ra ID và thông tin của các mẫu bị predict sai."""
+        import math
+        from src.utils import qa_utils
+
+        metric = self.dataset_reader.task.metric
+        failed = []
+
+        for idx, entry in enumerate(data):
+            pred  = entry.get("pred")
+            label = entry.get("label")
+            entry_id = entry.get("id", idx)  # dùng field 'id' nếu có, fallback = index
+
+            is_fail = False
+            if metric == "ConvFinQA":
+                # So sánh số học (giống compute_ConvFinQA)
+                label_set = qa_utils.normalized_num(label[0]) if isinstance(label, list) else qa_utils.normalized_num(str(label))
+                pred_set  = qa_utils.normalized_num(str(pred))
+                if len(pred_set) == 0 or len(label_set) == 0:
+                    is_fail = True
+                else:
+                    is_fail = not any(math.isclose(p, label_set[0], abs_tol=1e-2) for p in pred_set)
+            else:
+                # Multiple-choice và các task khác: so sánh trực tiếp
+                is_fail = (pred != label)
+
+            if is_fail:
+                failed.append({"id": entry_id, "pred": pred, "label": label})
+
+        print(f"[FAILED] Task: {self.cfg.task_name} — {len(failed)}/{len(data)} mẫu sai")
+        for f in failed:
+            print(f"  ID={f['id']}  pred={repr(f['pred'])}  label={repr(f['label'])}")
+            print(f"{'='*10}\n")
+        return failed
+
     def write_predictions(self):
         data = []
         for path in glob.glob(f"{self.output_file}tmp_*.bin"):
@@ -175,9 +210,14 @@ class Inferencer:
         
         print("saved pred to: ", self.output_file)
         print("saved eval res to: ", self.res_file)
+
+        # In ID các mẫu predict sai
+        self.print_failed_ids(data)
+
         for path in glob.glob(f"{self.output_file}tmp_*.bin"):
             os.remove(path)
         return data
+
 
 
 @hydra.main(config_path="configs", config_name="inference")

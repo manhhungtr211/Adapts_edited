@@ -17,7 +17,8 @@ dataset_reader:
   cache_dir: ${cache_dir}
   max_length: ${max_length}
   generate_max_len: ${generate_max_len}
-  max_test_samples: 100  # null = chạy hết, đặt số (vd: 100) để giới hạn mẫu cho failure table
+  max_test_samples: 100  # null = chạy hết, đặt số (vd: 100) để random sample cho failure table
+  sample_seed: 42        # seed để đảm bảo kết quả tái lập được (reproducible)
   add_bos_token: ${add_bos_token}
 model:
   _target_: src.models.model.get_model

@@ -7,12 +7,8 @@ OUTPUT_DIR='/tmp/output/' # for saving the prediction files
 RES_DIR='/tmp/res/' # for saving the evaluation scores of each task
 CACHE_DIR='/tmp/cache' # for caching hf models and datasets
 
-if [ ${DOMAIN} == 'biomedicine' ]; then
-    TASK='MQP+PubMedQA+RCT+USMLE+ChemProt'
-elif [ ${DOMAIN} == 'finance' ]; then
+if [ ${DOMAIN} == 'finance' ]; then
     TASK='ConvFinQA+NER+FPB+FiQA_SA+Headline'
-elif [ ${DOMAIN} == 'law' ]; then
-    TASK='CaseHOLD+SCOTUS+UNFAIR_ToS'
 else
     TASK=${DOMAIN}
 fi
