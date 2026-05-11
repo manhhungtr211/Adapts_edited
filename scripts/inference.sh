@@ -8,7 +8,8 @@ RES_DIR='/tmp/res/' # for saving the evaluation scores of each task
 CACHE_DIR='/tmp/cache' # for caching hf models and datasets
 
 if [ ${DOMAIN} == 'finance' ]; then
-    TASK='ConvFinQA+NER+FPB+FiQA_SA+Headline'
+#TASK='ConvFinQA+NER+FPB+FiQA_SA+Headline'
+    TASK='ConvFinQA'
 else
     TASK=${DOMAIN}
 fi
