@@ -220,21 +220,25 @@ class Inferencer:
 
 
 
-@hydra.main(config_path="configs", config_name="inference")
-def main(cfg):
+def run_inference(cfg, model=None):
     logger.info(cfg)
 
     accelerator = Accelerator()
+    
     # load model once and run for many tasks
-    if cfg.model_parallel:
-        # model_parallel=True: đã load float16 + device_map="auto" trong get_model()
-        # KHÔNG gọi .half() vì sẽ tạo bản copy tạm thời → spike VRAM
-        model = hu.instantiate(cfg.model)
-        print('model_parallel=True: model split across GPUs via device_map="auto"')
+    if model is None:
+        if getattr(cfg, "model_parallel", False):
+            # model_parallel=True: đã load float16 + device_map="auto" trong get_model()
+            # KHÔNG gọi .half() vì sẽ tạo bản copy tạm thời → spike VRAM
+            model = hu.instantiate(cfg.model)
+            print('model_parallel=True: model split across GPUs via device_map="auto"')
+        else:
+            model = hu.instantiate(cfg.model).half()
+            model = model.to(accelerator.device)
+            print('map whole LLM to each GPU')
     else:
-        model = hu.instantiate(cfg.model).half()
-        model = model.to(accelerator.device)
-        print('map whole LLM to each GPU')
+        print('Using pre-loaded model passed directly to run_inference()')
+        
     model = model.eval()
     if hasattr(model, "module"):
         model = model.module
@@ -252,6 +256,10 @@ def main(cfg):
             accelerator.wait_for_everyone()
             if accelerator.is_main_process:
                 inferencer.write_predictions()
+
+@hydra.main(config_path="configs", config_name="inference")
+def main(cfg):
+    run_inference(cfg)
 
 
 if __name__ == "__main__":
