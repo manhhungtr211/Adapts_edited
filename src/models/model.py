@@ -29,9 +29,9 @@ def get_model(model=None, **kwargs):
         print(f"[get_model] Loading TRM from checkpoint: {checkpoint_path}")
         from src.models.trm_model import TinyRecursiveModel, FinanceTRMWrapper
         
-        # Hardcoded config matching the notebook
+        # Hardcoded config matching the notebook (updated for Llama-2 tokenizer)
         config = {
-            'vocab_size': 50257,
+            'vocab_size': 32000,
             'dim': 256,
             'n_heads': 8,
             'n_layers': 4,
