@@ -8,7 +8,7 @@ generate_max_len: 100 # for text completion task
 n_tokens: 2048 # max length of (prompt + task input+ task output)
 cache_dir: /tmp/cache # for caching hf models and datasets
 add_bos_token: ???
-model_parallel: ??? # True or false
+model_parallel: true # True or false
 
 dataset_reader:
   _target_: src.dataset_readers.inference_dsr.InferenceDatasetReader
