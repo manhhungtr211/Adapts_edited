@@ -272,8 +272,11 @@ class FinanceTRMWrapper(nn.Module):
     def generate(self, input_ids, attention_mask=None, max_new_tokens=None, **kwargs):
         max_tokens = max_new_tokens or self.max_new_tokens
         
+        # Lấy model gốc nếu đang bị bọc trong DataParallel
+        actual_model = self.model.module if hasattr(self.model, "module") else self.model
+        
         with torch.no_grad():
-            output_ids = self.model.generate(
+            output_ids = actual_model.generate(
                 input_ids=input_ids, 
                 max_new_tokens=max_tokens,
                 temperature=kwargs.get("temperature", 0.1),
