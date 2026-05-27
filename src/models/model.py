@@ -31,7 +31,7 @@ def get_model(model=None, **kwargs):
         
         # Hardcoded config matching the notebook (updated for Llama-2 tokenizer)
         config = {
-            'vocab_size': 32000,
+            'vocab_size': 50257,
             'dim': 256,
             'n_heads': 8,
             'n_layers': 4,
