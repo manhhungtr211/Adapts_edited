@@ -221,6 +221,13 @@ class Inferencer:
 
 
 def run_inference(cfg, model=None):
+    """Chạy inference pipeline.
+
+    Args:
+        cfg: Hydra config object.
+        model: (Optional) Model object đã fine-tune hoặc load sẵn.
+               Nếu được truyền vào, bỏ qua việc load model từ config.
+    """
     logger.info(cfg)
 
     accelerator = Accelerator()
@@ -237,7 +244,10 @@ def run_inference(cfg, model=None):
             model = model.to(accelerator.device)
             print('map whole LLM to each GPU')
     else:
-        print('Using pre-loaded model passed directly to run_inference()')
+        print('[run_inference] Sử dụng model object được truyền trực tiếp (đã fine-tune hoặc load sẵn)')
+        # Đảm bảo model ở đúng device nếu chưa có device_map
+        if not hasattr(model, 'hf_device_map'):
+            model = model.to(accelerator.device)
         
     model = model.eval()
     if hasattr(model, "module"):
@@ -256,6 +266,65 @@ def run_inference(cfg, model=None):
             accelerator.wait_for_everyone()
             if accelerator.is_main_process:
                 inferencer.write_predictions()
+
+
+def run_inference_with_model(model, cfg_overrides=None):
+    """API tiện lợi: chạy inference với model object đã có sẵn.
+
+    Dùng trong notebook hoặc script khi bạn đã có model (vừa fine-tune,
+    hoặc load từ checkpoint thủ công) và muốn evaluate trên domain tasks.
+
+    Args:
+        model: Model object (đã fine-tune hoặc load sẵn).
+        cfg_overrides: (Optional) Dict các tham số config cần ghi đè.
+            Ví dụ: {
+                "model_name": "my-finetuned-model",  # dùng cho tokenizer + đặt tên output
+                "task_name": "ConvFinQA",
+                "output_dir": "/tmp/output/",
+                "add_bos_token": False,
+            }
+
+    Example:
+        >>> from transformers import AutoModelForCausalLM
+        >>> # Load model đã fine-tune từ local checkpoint
+        >>> model = AutoModelForCausalLM.from_pretrained("./my_finetuned_checkpoint")
+        >>>
+        >>> run_inference_with_model(
+        ...     model=model,
+        ...     cfg_overrides={
+        ...         "model_name": "my-finetuned-model",
+        ...         "task_name": "ConvFinQA+FPB",
+        ...         "add_bos_token": False,
+        ...         "model_parallel": False,
+        ...     }
+        ... )
+    """
+    from hydra import compose, initialize_config_dir
+    from omegaconf import OmegaConf
+    import os
+
+    config_dir = os.path.join(os.path.dirname(__file__), "configs")
+
+    defaults = {
+        "task_name": "ConvFinQA",
+        "model_name": "custom-model",
+        "add_bos_token": "False",
+        "model_parallel": "False",
+        "output_dir": "/tmp/output/",
+        "res_dir": "/tmp/res/",
+        "cache_dir": "/tmp/cache",
+    }
+    if cfg_overrides:
+        defaults.update(cfg_overrides)
+
+    # Build Hydra overrides list
+    overrides = [f"{k}={v}" for k, v in defaults.items()]
+
+    with initialize_config_dir(config_dir=os.path.abspath(config_dir), version_base=None):
+        cfg = compose(config_name="inference", overrides=overrides)
+
+    run_inference(cfg, model=model)
+
 
 @hydra.main(config_path="configs", config_name="inference")
 def main(cfg):
