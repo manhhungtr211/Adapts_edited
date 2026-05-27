@@ -59,6 +59,8 @@ def get_model(model=None, **kwargs):
             trm_model.load_state_dict(ckpt)
             
         # Wrap it to mimic HuggingFace model
+        if use_parallel:
+            trm_model = trm_model.cuda()
         model = FinanceTRMWrapper(trm_model)
         
         if use_parallel and torch.cuda.device_count() > 1:
