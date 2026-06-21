@@ -32,10 +32,10 @@ class InferenceDatasetReader(torch.utils.data.Dataset):
 
         self.test_split = self.task.get_dataset(cache_dir=cache_dir)
         # Random sample n mẫu để tạo failure table (có seed để tái lập được)
-        if max_test_samples is not None:
-            n = min(int(max_test_samples), len(self.test_split))
-            self.test_split = self.test_split.shuffle(seed=sample_seed).select(range(n))
-            print(f"[failure table mode] random sample {n} mẫu (seed={sample_seed})")
+        #if max_test_samples is not None:
+        #    n = min(int(max_test_samples), len(self.test_split))
+        #    self.test_split = self.test_split.shuffle(seed=sample_seed).select(range(n))
+        #    print(f"[failure table mode] random sample {n} mẫu (seed={sample_seed})")
         self.n_tokens_in_prompt = n_tokens
         self.generate_max_len = generate_max_len
         self.num_processes = 1
