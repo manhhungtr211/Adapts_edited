@@ -40,8 +40,9 @@ class DataCollatorWithPaddingAndCuda:
             try:
                 batch = batch.to(self.device)
             except TypeError:
-                batch = {
+                moved = {
                     k: v.to(self.device) if isinstance(v, torch.Tensor) else v
                     for k, v in batch.items()
-    }
+                }
+                batch = BatchEncoding(data=moved)
         return batch
