@@ -2,6 +2,18 @@ from transformers import AutoModelForCausalLM
 import torch
 import os
 
+from transformers.dynamic_module_utils import get_class_from_dynamic_module
+original_get_class = get_class_from_dynamic_module
+
+def patched_get_class(*args, **kwargs):
+    cls = original_get_class(*args, **kwargs)
+    if not hasattr(cls, "register_for_auto_class"):
+        cls.register_for_auto_class = classmethod(lambda c, *a, **k: None)
+    return cls
+
+import transformers.dynamic_module_utils
+transformers.dynamic_module_utils.get_class_from_dynamic_module = patched_get_class
+
 def get_model(model=None, **kwargs):
     """Load hoặc trả về model cho inference.
 
