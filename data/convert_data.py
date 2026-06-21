@@ -21,6 +21,7 @@ def build_dataset(samples):
 
         questions = annotation["dialogue_break"]
         answers = annotation["exe_ans_list"]
+        label = annotation["turn_program"][-1]
 
         pre_text = " ".join(sample["pre_text"])
         post_text = " ".join(sample["post_text"])
@@ -44,7 +45,7 @@ def build_dataset(samples):
         )
         new_data.append({
             "input": "\n\n".join(context_parts),
-            "label": str(answers[turn_ind])
+            "label": str(label)
         })
 
     return new_data

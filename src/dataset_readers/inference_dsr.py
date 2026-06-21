@@ -118,7 +118,7 @@ class InferenceDatasetReader(torch.utils.data.Dataset):
         entry["infer_a"] = []
         for i in range(len(questions)):
             q = questions[i]
-            tokenized_q = self.tokenizer.encode_plus(
+            tokenized_q = self.tokenizer(
                         q,
                         truncation=True,  # truncate from left for long inputs
                         max_length=self.n_tokens_in_prompt - self.generate_max_len,
