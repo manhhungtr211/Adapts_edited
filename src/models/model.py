@@ -1,6 +1,7 @@
 from transformers import AutoModelForCausalLM
 import torch
-import os
+import importlib.util
+import sys
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file
 
@@ -17,17 +18,24 @@ def get_model(model=None, **kwargs):
         return model
 
     # ========================================================
-    # XỬ LÝ RIÊNG: Bypass HuggingFace API cho mô hình TRM
+    # XỬ LÝ RIÊNG CHO TRM: Import động (Dynamic Import) từ HF
     # ========================================================
     if "trm-convfinqa" in model_name:
-        print(f"\n[get_model] Kích hoạt chế độ load THỦ CÔNG cho {model_name}...")
-        from src.models.trm_model import TinyRecursiveModel, FinanceTRMWrapper
+        print(f"\n[get_model] Đang tải trực tiếp file kiến trúc từ Hugging Face...")
         
-        # 1. Tự động tải file safetensors từ mạng về máy
-        print("-> Đang tải file weights (.safetensors) từ HuggingFace Hub...")
-        weight_path = hf_hub_download(repo_id=model_name, filename="model.safetensors")
+        # 1. Tải file modeling_trm.py từ Hub (thay vì tìm ở máy local)
+        py_path = hf_hub_download(repo_id=model_name, filename="modeling_trm.py")
         
-        # 2. Khởi tạo cấu trúc mạng
+        # 2. Nạp file vừa tải thành một module Python "ảo" trong RAM
+        spec = importlib.util.spec_from_file_location("modeling_trm", py_path)
+        modeling_trm = importlib.util.module_from_spec(spec)
+        sys.modules["modeling_trm"] = modeling_trm
+        spec.loader.exec_module(modeling_trm)
+        
+        # Lấy class từ module ảo
+        TinyRecursiveModel = modeling_trm.TinyRecursiveModel
+        
+        # 3. Khởi tạo cấu trúc mạng
         config = {
             'vocab_size': 50257,
             'dim': 256,
@@ -40,18 +48,30 @@ def get_model(model=None, **kwargs):
         }
         trm_model = TinyRecursiveModel(**config)
         
-        # 3. Nạp weights vào mạng
-        print("-> Đang nạp weights vào mô hình...")
+        # 4. Tải và nạp weights
+        print("-> Đang tải file weights (.safetensors) và nạp vào mô hình...")
+        weight_path = hf_hub_download(repo_id=model_name, filename="model.safetensors")
         state_dict = load_file(weight_path)
-        # Dùng strict=False để bỏ qua các sai lệch nhỏ về tên key nếu có
         trm_model.load_state_dict(state_dict, strict=False)
         
-        # 4. Đẩy lên GPU (nếu có)
         if use_parallel:
             trm_model = trm_model.cuda()
             
-        model = FinanceTRMWrapper(trm_model)
-        
+        # 5. Xử lý Wrapper bảo vệ (trường hợp tác giả không có FinanceTRMWrapper)
+        if hasattr(modeling_trm, "FinanceTRMWrapper"):
+            model = modeling_trm.FinanceTRMWrapper(trm_model)
+        else:
+            print("-> Không tìm thấy FinanceTRMWrapper chuẩn, đang tạo Auto-Wrapper...")
+            class FallbackWrapper(torch.nn.Module):
+                def __init__(self, core_model):
+                    super().__init__()
+                    self.model = core_model
+                def forward(self, *args, **kwargs):
+                    return self.model(*args, **kwargs)
+                def generate(self, *args, **kwargs):
+                    return self.model.generate(*args, **kwargs) if hasattr(self.model, "generate") else None
+            model = FallbackWrapper(trm_model)
+            
         if use_parallel and torch.cuda.device_count() > 1:
             print("-> Wrapping TRM with DataParallel...")
             model.model = torch.nn.DataParallel(model.model)
@@ -60,7 +80,7 @@ def get_model(model=None, **kwargs):
         return model
     # ========================================================
 
-    # DÀNH CHO CÁC MÔ HÌNH CHUẨN KHÁC (ví dụ: Llama, Mistral...)
+    # DÀNH CHO CÁC MÔ HÌNH CHUẨN KHÁC
     if use_parallel:
         n_gpus = torch.cuda.device_count()
         max_memory = {i: "8GiB" for i in range(n_gpus)}
